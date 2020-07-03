@@ -10,7 +10,7 @@ from fml.testing.fixtures import BaseTestCase, TickFactory
 from fml.data import bars
 
 
-class TickDataSetTest(BaseTestCase):
+class TickBarTestCase(BaseTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.ticks_factory = TickFactory(
@@ -18,7 +18,7 @@ class TickDataSetTest(BaseTestCase):
             store_ticks=True
         )
 
-    def test_bar_data(self):
+    def test_tick_bar_data(self):
 
         expected_ticks = []
         count = 1
@@ -32,6 +32,45 @@ class TickDataSetTest(BaseTestCase):
                     | bars.TickBar(threshold=10)
             )
             assert_that(result, equal_to(expected_ticks))
+
+
+class VolumeBarTestCase(BaseTestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.ticks_factory = TickFactory(
+            tick_number=2,
+            store_ticks=True
+        )
+
+    def test_volume_bar_data(self):
+        expected_ticks = []
+        volume_threshold = 100000
+        volume = 0
+        for tick in self.ticks_factory.ticks:
+            volume += tick.price * tick.quantity
+            if volume >= volume_threshold:
+                expected_ticks.append(tick)
+                volume = 0
+        logging.info(f"Volume threshold = {volume_threshold}")
+        logging.info(expected_ticks)
+        with TestPipeline() as p:  # Use TestPipeline for testing.
+            result = (
+                    p | beam.Create(self.ticks_factory.ticks)
+                    | bars.VolumeBar(threshold=volume_threshold)
+            )
+            assert_that(result, equal_to(expected_ticks))
+
+    def test_sample_volume_bar_data(self):
+        with TestPipeline() as p:  # Use TestPipeline for testing.
+            result = (
+                    p | beam.Create(self.TICK_DATA_PARSED)
+                    | bars.VolumeBar(threshold=100000)
+            )
+            assert_that(result, equal_to(
+                [self.TICK_DATA_PARSED[1], self.TICK_DATA_PARSED[3],
+                 self.TICK_DATA_PARSED[4], self.TICK_DATA_PARSED[6]]
+            ))
+
 
 
 if __name__ == '__main__':
