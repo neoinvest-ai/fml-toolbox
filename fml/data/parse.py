@@ -5,6 +5,8 @@ import logging
 import apache_beam as beam
 from apache_beam.metrics.metric import Metrics
 
+from fml.data.models import Tick
+
 
 class ParseTickDataFn(beam.DoFn):
     """
@@ -21,18 +23,19 @@ class ParseTickDataFn(beam.DoFn):
         try:
             row = list(csv.reader([element]))[0]
             self.ticks_counter.inc()
-            yield {
-                'time': dt.datetime.strptime(
+            yield Tick(
+                time=dt.datetime.strptime(
                     f"{row[0]},{row[1]}",
                     '%m/%d/%Y,%H:%M:%S'
                 ),
-                'price': float(row[2]),
-                'bid': float(row[3]),
-                'ask': float(row[4])
-            }
+                price=float(row[2]),
+                bid=float(row[3]),
+                ask=float(row[4]),
+                quantity=float(row[5])
+            )
         except:
             self.errors_parse_num.inc()
-            logging.error(f"Parsing error of {element}")
+            logging.error(f"Parsing error of element = {element}")
 
 
 class ParseTick(beam.PTransform):
