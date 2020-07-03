@@ -1,45 +1,37 @@
 import logging
-import datetime
-import os
-import tempfile
 import unittest
 
-from fml import pipeline
+import apache_beam as beam
+from apache_beam.testing.test_pipeline import TestPipeline
+from apache_beam.testing.util import assert_that
+from apache_beam.testing.util import equal_to
+
+from fml.testing.fixtures import BaseTestCase, TickFactory
+from fml.data import bars
 
 
-class TickDataSetTest(unittest.TestCase):
-    SAMPLE_DATA = [
-                      {'time': datetime.datetime(2020, 6, 19, 16, 0), 'price':
-                          109.34, 'bid': 109.32, 'ask': 109.38},
-                      {'time': datetime.datetime(2020, 6, 19, 16, 3, 13),
-                       'price': 109.37, 'bid': 109.37, 'ask': 112.66},
-                      {'time': datetime.datetime(2020, 6, 19, 16, 3, 13),
-                       'price': 109.37, 'bid': 109.37, 'ask': 112.66},
-                      {'time': datetime.datetime(2020, 6, 19, 16, 3, 13),
-                       'price': 109.37, 'bid': 109.37, 'ask': 112.66},
-                      {'time': datetime.datetime(2020, 6, 19, 16, 3, 13),
-                       'price': 109.37, 'bid': 109.37, 'ask': 112.66},
-                      {'time': datetime.datetime(2020, 6, 19, 16, 3, 13),
-                       'price': 109.37, 'bid': 109.37, 'ask': 112.66},
-                      {'time': datetime.datetime(2020, 6, 19, 16, 3, 14),
-                       'price': 109.37, 'bid': 109.37, 'ask': 110.54}
-                  ],
+class TickDataSetTest(BaseTestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.ticks_factory = TickFactory(
+            tick_number=100,
+            store_ticks=True
+        )
 
-    def setUp(self):
-        self.test_files = {
-            'output_file': self.generate_temp_file()
-        }
+    def test_bar_data(self):
 
-    def tearDown(self):
-        for test_file in self.test_files.values():
-            if os.path.exists(test_file):
-                os.remove(test_file)
-
-    def generate_temp_file(self, contents=None):
-        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-            if contents is not None:
-                temp_file.write(contents.encode('utf-8'))
-            return temp_file.name
+        expected_ticks = []
+        count = 1
+        for tick in self.ticks_factory.ticks:
+            if count % 10 == 0:
+                expected_ticks.append(tick)
+            count += 1
+        with TestPipeline() as p:  # Use TestPipeline for testing.
+            result = (
+                    p | beam.Create(self.ticks_factory.ticks)
+                    | bars.TickBar(threshold=10)
+            )
+            assert_that(result, equal_to(expected_ticks))
 
 
 if __name__ == '__main__':

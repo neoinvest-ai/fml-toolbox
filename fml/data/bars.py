@@ -18,15 +18,18 @@ class TickBarFn(beam.DoFn):
         :type threshold: int
         """
         beam.DoFn.__init__(self)  # BEAM-6158
-        self.number = Metrics.counter(self.__class__, 'ticks_processed')
+        self.ticks_processed = Metrics.counter(self.__class__,
+                                               'ticks_processed')
+        self.buffer = 0
         self.threshold = threshold
 
     def process(self, element):
-        self.number.inc()
-        if self.number == self.threshold:
-            self.number = Metrics.counter(self.__class__,
-                                          'ticks_processed')
+        self.buffer += 1
+        self.ticks_processed.inc()
+        if self.buffer == self.threshold:
+            self.buffer = 0
             yield element
+
 
 
 class VolumeBarFn(beam.DoFn):
@@ -57,10 +60,16 @@ class VolumeBarFn(beam.DoFn):
 
 
 class TickBar(beam.PTransform):
+    def __init__(self, threshold=10):
+        self.threshold = 10
+        super().__init__()
+
     def expand(self, pcoll):
         return (
                 pcoll
-                | 'TickBarFn' >> beam.ParDo(TickBarFn())
+                | 'TickBarFn' >> beam.ParDo(
+                    TickBarFn(threshold=self.threshold)
+                )
         )
 
 
