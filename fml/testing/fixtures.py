@@ -5,8 +5,7 @@ from collections import namedtuple
 import tempfile
 import unittest
 
-Quote = namedtuple('Quote', ('price', 'bid', 'ask'))
-Tick = namedtuple('Tick', ('time', 'price', 'bid', 'ask'))
+from fml.data.models import Quote, Tick
 
 
 class TickFactory:
@@ -15,18 +14,18 @@ class TickFactory:
                  end_time=dt.datetime.now(), store_ticks=False):
         """
         Tick factory
-        :param tick_number:
-        :type tick_number:
-        :param price_average:
-        :type price_average:
-        :param price_volatility:
-        :type price_volatility:
-        :param start_time:
-        :type start_time:
-        :param end_time:
-        :type end_time:
-        :param store_ticks:
-        :type store_ticks:
+        :param tick_number: Number of ticks to generate
+        :type tick_number: int
+        :param price_average: Average price
+        :type price_average: float
+        :param price_volatility: Average volatility
+        :type price_volatility: float
+        :param start_time: Start time defaulted to now - 10 minutes
+        :type start_time: dt.datetime
+        :param end_time: End time defaulted to now
+        :type end_time: dt.datetime
+        :param store_ticks: option to store or not ticks in the self instance
+        :type store_ticks: bool
         """
         self.tick_number = tick_number
         self.price_average = price_average
@@ -93,7 +92,8 @@ class TickFactory:
             time=tick_time,
             price=quote.price,
             bid=quote.bid,
-            ask=quote.ask
+            ask=quote.ask,
+            quantity=random.uniform(100, 200)
         )
         if self.store_ticks:
             self.ticks.append(tick)
@@ -101,7 +101,7 @@ class TickFactory:
         self.price_now = tick.price
         self.time_now = tick.time
         return (f"{tick.time.strftime('%m/%d/%Y,%H:%M:%S')},"
-                f"{tick.price},{tick.bid},{tick.ask}")
+                f"{tick.price},{tick.bid},{tick.ask},{tick.quantity}")
 
     def generate_all_ticks(self):
         """
@@ -120,12 +120,43 @@ class TickFactory:
 
 
 class BaseTestCase(unittest.TestCase):
+    TICK_DATA = (
+        "06/19/2020,16:00:00,109.34,109.32,109.38,500\n"
+        "06/19/2020,16:03:13,109.37,109.37,112.66,1700\n"
+        "06/19/2020,16:03:13,109.37,109.37,112.66,750\n"
+        "06/19/2020,16:03:13,109.37,109.37,112.66,250\n"
+        "wrong_line\n"
+        "06/19/2020,16:03:13,109.37,109.37,112.66,1000\n"
+        "06/19/2020,16:03:13,109.37,109.37,112.66,750\n"
+        "06/19/2020,16:03:14,109.37,109.37,110.54,500"
+    )
+
+    TICK_DATA_PARSED = [
+        Tick(time=dt.datetime(2020, 6, 19, 16, 0),
+             price=109.34, bid=109.32, ask=109.38, quantity=500),
+        Tick(time=dt.datetime(2020, 6, 19, 16, 3, 13),
+             price=109.37, bid=109.37, ask=112.66, quantity=1700),
+        Tick(time=dt.datetime(2020, 6, 19, 16, 3, 13),
+             price=109.37, bid=109.37, ask=112.66, quantity=750),
+        Tick(time=dt.datetime(2020, 6, 19, 16, 3, 13),
+             price=109.37, bid=109.37, ask=112.66, quantity=250),
+        Tick(time=dt.datetime(2020, 6, 19, 16, 3, 13),
+             price=109.37, bid=109.37, ask=112.66, quantity=1000),
+        Tick(time=dt.datetime(2020, 6, 19, 16, 3, 13),
+             price=109.37, bid=109.37, ask=112.66, quantity=750),
+        Tick(time=dt.datetime(2020, 6, 19, 16, 3, 14),
+             price=109.37, bid=109.37, ask=110.54, quantity=500)
+    ]
+
+    @classmethod
     def setUpClass(cls) -> None:
         cls.ticks_factory = TickFactory()
 
     def setUp(self):
         self.test_files = {
-            'input_file': self.generate_temp_file(),
+            'input_file': self.generate_temp_file(
+                contents=self.ticks_factory.generate_all_ticks()
+            ),
             'output_file': self.generate_temp_file()
         }
 
