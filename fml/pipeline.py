@@ -17,7 +17,7 @@ import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
 
-from fml.data.parse import Tick
+from fml.data.parse import ParseTick
 
 
 def run(argv=None, save_main_session=True):
@@ -43,5 +43,5 @@ def run(argv=None, save_main_session=True):
         (
                 p
                 | 'ReadInputFile' >> beam.io.ReadFromText(known_args.input)
-                | 'ParseTicks' >> Tick()
+                | 'ParseTicks' >> ParseTick()
         )
