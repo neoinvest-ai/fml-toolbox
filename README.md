@@ -6,7 +6,7 @@
 The financial machine learning toolbox provides you with utilities and transform functions to be used within your 
 financial data pipelines (built with Apache Beam). 
 
-To get more details on the techniques, please checkout the book the book [Advances in Financial Machine Learning by Marcos Lopez De Prado](https://www.wiley.com/en-us/Advances+in+Financial+Machine+Learning-p-9781119482109)
+To get more details on the techniques used in this toolbox, please checkout the book [Advances in Financial Machine Learning by Marcos Lopez De Prado](https://www.wiley.com/en-us/Advances+in+Financial+Machine+Learning-p-9781119482109)
 
 ---
 
